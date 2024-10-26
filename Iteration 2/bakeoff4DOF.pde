@@ -39,6 +39,12 @@ boolean isOnTranslate = false;
 boolean isOnRotate = false;
 boolean isOnScale = false;
 
+// =================INDICATOR STATUS (0=RED, 1=YELLOW, 2=GREEN)=================
+// [IDEA 20] User square turns lime green when all indicators are correct
+int indicatorTranslate = 0;
+int indicatorRotate = 0;
+int indicatorScale = 0;
+
 //these are variables you should probably leave alone
 int index = 0; //starts at zero-ith trial
 float border = 0; //some padding from the sides of window, set later
@@ -117,6 +123,11 @@ void draw() {
     text("User took " + ((finishTime-startTime)/1000f/trialCount+(errorCount*errorPenalty)) + " sec per destination inc. penalty", width/2, inchToPix(.4f)*4);
     return;
   }
+  
+  // [IDEA 15b] Prevent user square from going off screen
+  float logoCenter = logoZ / (logoZ/2);
+  logoX = constrain(logoX, logoCenter, width - logoCenter);
+  logoY = constrain(logoY, logoCenter, height - logoCenter);
 
   //===========DRAW DESTINATION SQUARES=================
   float targetSize = 0;
@@ -139,6 +150,8 @@ void draw() {
     if (trialIndex==i) {
       targetSize = d.z;
       drawCrosshair(d.z, color(255, 0, 0, 200), color(255, 0, 0));
+      
+      // [IDEA #1] Visual guide lines on TARGET square
       drawDashedGuideLines(d.z, color(255, 0, 0, 100), 2000, 6, 1);
     }
     
@@ -151,12 +164,13 @@ void draw() {
   rotate(radians(logoRotation)); //rotate using the logo square as the origin
   
   noStroke();
-  fill(logoColor);
+  // [IDEA 20] User square turns lime green when all indicators are correct
+  fill(checkForSuccess() ? deepLimeGreenSolid : logoColor);
   rect(0, 0, logoZ, logoZ);
   
-  // highlight logo square to indicate that it's a selection
-  if (mousePressed && isLogoDragged)   drawMarchingAnts(0, 0, logoZ, color(255, 255, 0, 200), 3, 2);
-  else                                 drawMarchingAnts(0, 0, logoZ, color(255, 255, 0, 100), 3, 1);
+  // [IDEA 5] Marching ants "selection" on user square
+  if (mousePressed && isLogoDragged && currentMode == Mode.REST)   drawMarchingAnts(0, 0, logoZ, color(255, 255, 0, 200), 3, 2);
+  else                                                             drawMarchingAnts(0, 0, logoZ, color(255, 255, 0, 100), 3, 1);
   
   // add white dot to center of logo square (with a fainter dot for extra visibility)
   noStroke();
@@ -165,6 +179,7 @@ void draw() {
   fill(255, 255, 255, 52);
   ellipse(0, 0, logoZ/8, logoZ/8);
   
+  // [IDEA #1] Visual guide lines on USER square
   drawDashedGuideLines(logoZ, color(255, 255, 255, 50), 2000, 6, 1);
   popMatrix();
 
@@ -172,6 +187,9 @@ void draw() {
   fill(255);
   controlLogic(); // replaces the scaffold control logic
   text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchToPix(.8f));
+  
+  // [IDEA 19] Blinking timer
+  timerDisplay();
 }
 
 void controlLogic()
@@ -186,10 +204,14 @@ void controlLogic()
   // =================SET FLAGS=================  
   checkFlagsDraw();
   
-  // =================SET DYNAMIC CURSOR=================  
+  // =================SET DYNAMIC CURSOR================= 
+  // [IDEA 8] Dynamic cursor icons
   setDynamicCursor();
   
   // =================DISPLAY PANEL=================  
+  // [IDEA 10] Buttons contained within unified control panel
+  // [IDEA 11] Control panel follows the user square
+  // [IDEA 12] Panel buttons (up, down, left, right, +, -, CW, CCW) represented as three joysticks
   displayPanel();
 }
 
@@ -209,7 +231,7 @@ void mouseReleased()
 {
   checkFlagsMouseReleased();
   
-  //check to see if user clicked submit button -- REPLACED: if (dist(width/2, height/2, mouseX, mouseY)<inchToPix(3f))
+  // [IDEA 9] Submit button
   if (onSubmit)
   {
     if (userDone==false && !checkForSuccess())
@@ -226,6 +248,7 @@ void mouseReleased()
 }
 
 void mouseDragged() {
+  // [IDEA 4] Draggable user square
   checkFlagsMouseDragged();
 }
 

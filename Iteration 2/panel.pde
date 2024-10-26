@@ -21,6 +21,39 @@ boolean isRotationDrag = false;
 
 // Draw the panel
 void drawPanel() {
+  // Get indicator status on each frame
+  Destination d = destinations.get(trialIndex);
+  
+  // Check translation indicator status
+  if (dist(d.x, d.y, logoX, logoY)<inchToPix(.2f)) {
+    indicatorTranslate = 1;
+    if (dist(d.x, d.y, logoX, logoY)<inchToPix(.05f)) {
+      indicatorTranslate = 2;
+    }
+  } else {
+    indicatorTranslate = 0;
+  }
+  
+  // Check rotation indicator status
+  if (calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=20) {
+    indicatorRotate = 1;
+    if (calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=5) {
+      indicatorRotate = 2;
+    }
+  } else {
+    indicatorRotate = 0;
+  }
+  
+  // Check scaling indicator status
+  if (abs(d.z - logoZ)<inchToPix(.4f)) {
+    indicatorScale = 1;
+    if (abs(d.z - logoZ)<inchToPix(.1f)) {
+      indicatorScale = 2;
+    }
+  } else {
+    indicatorScale = 0;
+  }
+  
   // Light gray horizontal panel
   panel.stroke(darkGraySolid);
   panel.strokeWeight(2);
@@ -29,8 +62,17 @@ void drawPanel() {
 
   // Button #1: Translate
   panel.fill(darkerGray);
-  panel.stroke(darkGraySolid);
-  panel.strokeWeight(2);
+  if (indicatorTranslate == 2) {
+    panel.strokeWeight(5);
+    panel.stroke(deepLimeGreenSolid);
+  } else if (indicatorTranslate == 1) {
+    panel.strokeWeight(2);
+    panel.stroke(yellowTransparent);
+  } else {
+    panel.strokeWeight(2);
+    panel.stroke(darkGraySolid);
+  }
+
   panel.rectMode(CENTER);
   panel.rect(50, 50, inchToPix(0.75), inchToPix(0.75), 10);
   panel.stroke(lightGray);
@@ -46,9 +88,18 @@ void drawPanel() {
 
   // Button #2: Rotate
   panel.fill(darkerGray);
-  panel.stroke(darkGraySolid);
+  if (indicatorRotate == 2) {
+    panel.strokeWeight(5);
+    panel.stroke(deepLimeGreenSolid);
+  } else if (indicatorRotate == 1) {
+    panel.strokeWeight(2);
+    panel.stroke(yellowTransparent);
+  } else {
+    panel.strokeWeight(2);
+    panel.stroke(darkGraySolid);
+  }
+  
   panel.ellipse(130, 50, inchToPix(0.75), inchToPix(0.75));
-  panel.stroke(deepLimeGreen);
   panel.strokeWeight(4);
   panel.stroke(lightGray);
   panel.ellipse(130, 50, inchToPix(0.4), inchToPix(0.4));
@@ -61,7 +112,17 @@ void drawPanel() {
 
   // Button #3: Scale
   panel.fill(darkerGray);
-  panel.stroke(darkGraySolid);
+  if (indicatorScale == 2) {
+    panel.strokeWeight(5);
+    panel.stroke(deepLimeGreenSolid);
+  } else if (indicatorScale == 1) {
+    panel.strokeWeight(2);
+    panel.stroke(yellowTransparent);
+  } else {
+    panel.strokeWeight(2);
+    panel.stroke(darkGraySolid);
+  }
+  
   panel.rectMode(CENTER);
   panel.rect(200, 50, inchToPix(0.4), inchToPix(1.2), 10);
   panel.fill(lightGray);
@@ -106,6 +167,7 @@ void drawPanel() {
   } else {
     onSubmit = false;
     isSubmitHover = false;
+    
     submitC1 = lightLimeGreen;
     submitC2 = deepLimeGreen;
   }
