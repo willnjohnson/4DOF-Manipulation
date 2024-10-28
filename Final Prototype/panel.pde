@@ -55,9 +55,9 @@ void drawPanel() {
   }
   
   // Light gray horizontal panel
-  panel.stroke(darkGraySolid);
+  panel.stroke(lightGray);
   panel.strokeWeight(2);
-  panel.fill(lightGray);
+  panel.fill(darkerGray);
   panel.rect(0, 0, 315, 100, 20);
 
   // Button #1: Translate
@@ -185,8 +185,8 @@ void drawPanel() {
     onSubmit = false;
     isSubmitHover = false;
     
-    submitC1 = lightLimeGreen;
-    submitC2 = deepLimeGreen;
+    submitC1 = deepLimeGreen;
+    submitC2 = lightLimeGreen;
   }
   panel.fill(submitC1);
   panel.ellipse(265, 50, inchToPix(0.75), inchToPix(0.75));
@@ -195,7 +195,7 @@ void drawPanel() {
   panel.ellipse(265, 50, inchToPix(0.6), inchToPix(0.6));
   panel.textSize(inchToPix(0.5));
   panel.textAlign(CENTER, CENTER);
-  panel.fill(submitC2);
+  panel.fill(white);
   panel.text(textSubmit, 265, 50);
   
   panel.textAlign(LEFT, CENTER);

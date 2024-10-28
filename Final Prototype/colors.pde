@@ -1,11 +1,12 @@
 // Colors
-int lightGray = color(200, 200, 200, 140);
-int lightGrayMoreOpaque = color(220, 220, 220, 200);
-int darkGraySolid = color(100, 100, 100);
+int lightGray = color(130, 130, 130, 140);
+int lightGrayMoreOpaque = color(150, 150, 150, 200);
+int darkGraySolid = color(30, 30, 30);
 int darkRedSolid = color(140, 0, 0);
-int darkerGray = color(80, 80, 80, 200);
+int darkerGray = color(10, 10, 10, 200);
 int gray = color(120, 120, 120, 255);
 int lightLimeGreen = color(200, 255, 200, 200);
+int lightLimeGreenTransparent = color(200, 255, 200, 30);
 int deepLimeGreenSolid = color(100, 200, 100);
 int deepLimeGreen = color(100, 200, 100, 200);
 int yellow = color(255, 255, 0);

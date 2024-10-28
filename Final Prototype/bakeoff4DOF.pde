@@ -130,7 +130,6 @@ void draw() {
   logoY = constrain(logoY, logoCenter, height - logoCenter);
 
   //===========DRAW DESTINATION SQUARES=================
-  float targetSize = 0;
   for (int i=trialIndex; i<trialCount; i++) // reduces over time
   {
     pushMatrix();
@@ -148,7 +147,6 @@ void draw() {
     
     // add guides to the target
     if (trialIndex==i) {
-      targetSize = d.z;
       drawCrosshair(d.z, color(255, 0, 0, 200), color(255, 0, 0));
       
       // [IDEA #1] Visual guide lines on TARGET square

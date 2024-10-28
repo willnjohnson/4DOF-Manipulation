@@ -52,8 +52,20 @@ void drawDashedGuideLines(float squareSize, color strokeColor, float lineLength,
 
 // Draw marching ants to indicate that there's a selection
 void drawMarchingAnts(float x, float y, float squareSize, color strokeColor, float dashLength, int weight) {
-  strokeWeight(indicatorTranslate==2 ? weight+1 : weight);
-  stroke(indicatorTranslate==2 ? deepLimeGreen : strokeColor);
+  noFill();
+  
+  if (indicatorTranslate==2) {
+    strokeWeight(weight+2);
+    stroke(lightLimeGreenTransparent);
+    rect(x, y, squareSize, squareSize);
+    
+    strokeWeight(weight+1);
+    stroke(deepLimeGreen);
+  } else {
+    strokeWeight(weight);
+    stroke(strokeColor);
+  }
+
   float halfSide = squareSize / 2;
   
   // Define vertices
