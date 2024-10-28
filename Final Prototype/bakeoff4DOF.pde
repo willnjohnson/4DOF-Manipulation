@@ -109,7 +109,7 @@ void setup() {
 
 void draw() {
 
-  background(40); //background is dark grey
+  background(20); //background is dark grey
   fill(200);
   noStroke();
 
