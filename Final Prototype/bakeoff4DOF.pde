@@ -11,6 +11,18 @@ import java.awt.Point;
 Robot robot;
 int pointerState = -1;
 float offsetX, offsetY;
+//float rotationHandleRadius = 10; // radius of the circle handle
+//float rotationHandleOffset = 5; // distance from the center to the corner handle
+float minLogoSize = 20;  // Minimum allowable size for the square
+float maxHandleRadius = 15;  // Maximum radius for the handle
+float minHandleRadius = 5;   // Minimum radius for the handle
+float rotationHandleRadius;
+boolean isRotating = false;  // Flag to indicate rotating mode
+float initialMouseX, initialMouseY;  // To store initial mouse position when clicking handle
+float initialSize;  // To store the initial size of the square when resizing starts
+float initialRotation;  // To store the initial rotation angle when rotation starts
+boolean isDragging = false;  // Indicates a handle drag is happening
+float initialDist;       // Initial distance from center of square to mouse
 
 // =================PANEL VARIABLES=================
 int panelX = 0;
@@ -109,7 +121,7 @@ void setup() {
 
 void draw() {
 
-  background(20); //background is dark grey
+  background(40); //background is dark grey
   fill(200);
   noStroke();
 
@@ -130,6 +142,7 @@ void draw() {
   logoY = constrain(logoY, logoCenter, height - logoCenter);
 
   //===========DRAW DESTINATION SQUARES=================
+  float targetSize = 0;
   for (int i=trialIndex; i<trialCount; i++) // reduces over time
   {
     pushMatrix();
@@ -147,6 +160,7 @@ void draw() {
     
     // add guides to the target
     if (trialIndex==i) {
+      targetSize = d.z;
       drawCrosshair(d.z, color(255, 0, 0, 200), color(255, 0, 0));
       
       // [IDEA #1] Visual guide lines on TARGET square
@@ -160,17 +174,15 @@ void draw() {
   pushMatrix();
   translate(logoX, logoY); //translate draw center to the center oft he logo square
   rotate(radians(logoRotation)); //rotate using the logo square as the origin
-  logoColor = (isLogoDragged) ? color(60, 60, 192, 70) : color(60, 60, 192, 192);
   
   noStroke();
-  
   // [IDEA 20] User square turns lime green when all indicators are correct
   fill(checkForSuccess() ? deepLimeGreenSolid : logoColor);
   rect(0, 0, logoZ, logoZ);
   
   // [IDEA 5] Marching ants "selection" on user square
-  if (mousePressed && isLogoDragged && currentMode == Mode.REST)   drawMarchingAnts(0, 0, logoZ, yellow, 3, 2);
-  else                                                             drawMarchingAnts(0, 0, logoZ, yellow, 3, 1);
+  if (mousePressed && isLogoDragged && currentMode == Mode.REST)   drawMarchingAnts(0, 0, logoZ, color(255, 255, 0, 200), 3, 2);
+  else                                                             drawMarchingAnts(0, 0, logoZ, color(255, 255, 0, 100), 3, 1);
   
   // add white dot to center of logo square (with a fainter dot for extra visibility)
   noStroke();
@@ -181,15 +193,28 @@ void draw() {
   
   // [IDEA #1] Visual guide lines on USER square
   drawDashedGuideLines(logoZ, color(255, 255, 255, 50), 2000, 6, 1);
+  
+  // Draw the rotation handle in the upper-right corner
+  // Update handle position based on square size
+  rotationHandleRadius = map(logoZ, minLogoSize, 100, minHandleRadius, maxHandleRadius);
+  rotationHandleRadius = constrain(rotationHandleRadius, minHandleRadius, maxHandleRadius);
+
+  float handleX = logoZ / 2;
+  float handleY = -logoZ / 2;
+  fill(255, 100, 100); // red color for the handle
+  ellipse(handleX, handleY, rotationHandleRadius * 2, rotationHandleRadius * 2); // draw rotation handle
+  
   popMatrix();
 
   //===========DRAW CONTROLS=================
   fill(255);
-  controlLogic(); // replaces the scaffold control logic
+  if(!isRotating){
+    controlLogic(); // replaces the scaffold control logic
+  }
   text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchToPix(.8f));
   
   // [IDEA 19] Blinking timer
-  timerDisplay();
+  //timerDisplay();
 }
 
 void controlLogic()
@@ -225,11 +250,47 @@ void mousePressed()
     startTime = millis();
     println("time started!");
   }
+  
+  if (isMouseOverHandle()) {
+    initialMouseX = mouseX;
+    initialMouseY = mouseY;
+    initialSize = logoZ;
+    initialRotation = logoRotation;
+    isDragging = true;
+    
+    // Calculate initial distance and angle from square center to mouse
+    float dx = mouseX - logoX;
+    float dy = mouseY - logoY;
+    initialDist = dist(mouseX, mouseY, logoX, logoY);
+    initialAngle = atan2(dy, dx);
+    
+    // Determine if user is resizing or rotating
+    isRotating = true; // Set rotate mode on click
+  } 
+  else if ((dist(mouseX, mouseY, logoX, logoY) < logoZ/2) && !isRotating) {
+    isLogoDragged = true; // drag logo if clicked within square bounds
+  } else {
+    isLogoDragged = false;
+  }
+}
+
+// Check if mouse is over rotation handle
+boolean isMouseOverHandle() {
+  // [IDEA 14] Handle to resizes and rotates the square
+  // Handle position relative to square's center and current rotation
+  float handleGlobalX = logoX + (logoZ / 2) * cos(radians(logoRotation)) - (-logoZ / 2) * sin(radians(logoRotation));
+  float handleGlobalY = logoY + (logoZ / 2) * sin(radians(logoRotation)) + (-logoZ / 2) * cos(radians(logoRotation));
+  return dist(mouseX, mouseY, handleGlobalX, handleGlobalY) < rotationHandleRadius;
 }
 
 void mouseReleased()
 {
+  isRotating = false;
+  isDragging = false;
   checkFlagsMouseReleased();
+  
+  isLogoDragged = false;
+  currentMode = Mode.REST;
   
   // [IDEA 9] Submit button
   if (onSubmit)
@@ -250,15 +311,33 @@ void mouseReleased()
 void mouseDragged() {
   // [IDEA 4] Draggable user square
   checkFlagsMouseDragged();
-}
+  
+  if (isDragging) {
+    float dx = mouseX - initialMouseX;
+    float dy = mouseY - initialMouseY;
+    float currentDist = dist(mouseX, mouseY, logoX, logoY);
+    float currentAngle = atan2(dy, dx);
+    
+    // Determine rotation (based on change in angle)
+    logoZ = constrain(initialSize + (currentDist - initialDist), minLogoSize, 300);
+    logoRotation = (initialRotation + degrees(currentAngle - initialAngle)) % 360;
+  
+
+  }
+  else if (isLogoDragged) {
+    // Drags the user square
+    logoX = mouseX + offsetX;
+    logoY = mouseY + offsetY;
+  }
+} 
 
 //probably shouldn't modify this, but email me if you want to for some good reason.
 public boolean checkForSuccess()
 {
-  Destination d = destinations.get(trialIndex);	
+  Destination d = destinations.get(trialIndex);  
   boolean closeDist = dist(d.x, d.y, logoX, logoY)<inchToPix(.05f); //has to be within +-0.05"
   boolean closeRotation = calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=5;
-  boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"	
+  boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"  
 
   println("Close Enough Distance: " + closeDist + " (logo X/Y = " + d.x + "/" + d.y + ", destination X/Y = " + logoX + "/" + logoY +")");
   println("Close Enough Rotation: " + closeRotation + " (rot dist="+calculateDifferenceBetweenAngles(d.rotation, logoRotation)+")");
