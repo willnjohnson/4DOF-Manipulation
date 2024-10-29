@@ -23,6 +23,7 @@ float initialSize;  // To store the initial size of the square when resizing sta
 float initialRotation;  // To store the initial rotation angle when rotation starts
 boolean isDragging = false;  // Indicates a handle drag is happening
 float initialDist;       // Initial distance from center of square to mouse
+float initialAngleOffset; // Add this to store the angle offset
 
 // =================PANEL VARIABLES=================
 int panelX = 0;
@@ -264,6 +265,9 @@ void mousePressed()
     initialDist = dist(mouseX, mouseY, logoX, logoY);
     initialAngle = atan2(dy, dx);
     
+    // Calculate initial angle offset
+    initialAngleOffset = initialAngle - radians(logoRotation);
+    
     // Determine if user is resizing or rotating
     isRotating = true; // Set rotate mode on click
   } 
@@ -313,15 +317,19 @@ void mouseDragged() {
   checkFlagsMouseDragged();
   
   if (isDragging) {
-    float dx = mouseX - initialMouseX;
-    float dy = mouseY - initialMouseY;
-    float currentDist = dist(mouseX, mouseY, logoX, logoY);
+    float dx = mouseX - logoX;
+    float dy = mouseY - logoY;
     float currentAngle = atan2(dy, dx);
-    
-    // Determine rotation (based on change in angle)
+    float currentDist = dist(mouseX, mouseY, logoX, logoY);
     float newSize = initialSize + (currentDist - initialDist);
+
+    // Calculate rotation while preserving the initial angle offset
+    logoRotation = degrees(currentAngle - initialAngleOffset);
+    logoRotation %= 360;
+
+    // Update resizing as usual
     logoZ = max(minLogoSize, constrain(newSize, minLogoSize, 300));
-    logoRotation = (initialRotation + degrees(currentAngle - initialAngle)) % 360;
+    
   }
   else if (isLogoDragged) {
     // Drags the user square
