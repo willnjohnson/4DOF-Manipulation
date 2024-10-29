@@ -214,7 +214,7 @@ void draw() {
   text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchToPix(.8f));
   
   // [IDEA 19] Blinking timer
-  //timerDisplay();
+  timerDisplay();
 }
 
 void controlLogic()
