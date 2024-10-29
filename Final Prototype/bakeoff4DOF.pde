@@ -319,10 +319,9 @@ void mouseDragged() {
     float currentAngle = atan2(dy, dx);
     
     // Determine rotation (based on change in angle)
-    logoZ = constrain(initialSize + (currentDist - initialDist), minLogoSize, 300);
+    float newSize = initialSize + (currentDist - initialDist);
+    logoZ = max(minLogoSize, constrain(newSize, minLogoSize, 300));
     logoRotation = (initialRotation + degrees(currentAngle - initialAngle)) % 360;
-  
-
   }
   else if (isLogoDragged) {
     // Drags the user square
