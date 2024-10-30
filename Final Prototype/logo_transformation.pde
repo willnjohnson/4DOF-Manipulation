@@ -69,7 +69,11 @@ void setLogoScale(int amt) {
   logoZ = constrain(logoZ-amt, .01, inchToPix(4f)); //leave min and max alone!
   
   // Ensure handle is properly updated
-  float scaleFactor = logoZ / oldLogoZ;
-  handleX = logoX + (handleX - logoX) * scaleFactor;
-  handleY = logoY + (handleY - logoY) * scaleFactor;
+  float offsetX = -logoZ / 2;
+  float offsetY = -logoZ / 2;
+  float angleInRadians = radians(logoRotation);
+  float rotatedX = offsetX * cos(angleInRadians) - offsetY * sin(angleInRadians);
+  float rotatedY = offsetX * sin(angleInRadians) + offsetY * cos(angleInRadians);
+  handleX = logoX + rotatedX;
+  handleY = logoY + rotatedY;
 }
