@@ -67,10 +67,10 @@ void drawPanel() {
       panel.stroke(deepLimeGreen, map(i, 5, 1, 0, 255));
       panel.noFill();
       panel.rectMode(CENTER);
-      panel.rect(50, 50, inchToPix(0.75 + i * 0.025), inchToPix(0.75 + i * 0.025), 20);
+      panel.rect(50, 50, inchToPix(0.75 + i * 0.025), inchToPix(0.75 + i * 0.025), 10);
     }
   } else if (indicatorTranslate == 1) {
-    panel.strokeWeight(2);
+    panel.strokeWeight(3);
     panel.stroke(yellowTransparent);
   } else {
     panel.strokeWeight(2);
@@ -102,7 +102,7 @@ void drawPanel() {
       panel.ellipse(130, 50, inchToPix(0.75 + i * 0.025), inchToPix(0.75 + i * 0.025));
     }
   } else if (indicatorRotate == 1) {
-    panel.strokeWeight(2);
+    panel.strokeWeight(3);
     panel.stroke(yellowTransparent);
   } else {
     panel.strokeWeight(2);
@@ -132,7 +132,7 @@ void drawPanel() {
       panel.rect(200, 50, inchToPix(0.4 + i * 0.025), inchToPix(1.2 + i * 0.025), 10);
     }
   } else if (indicatorScale == 1) {
-    panel.strokeWeight(2);
+    panel.strokeWeight(3);
     panel.stroke(yellowTransparent);
   } else {
     panel.strokeWeight(2);
@@ -163,7 +163,7 @@ void drawPanel() {
   panel.stroke(deepLimeGreenSolid);
   int submitC1;
   int submitC2;
-  if (!isLogoDragged && dist(mouseX, mouseY, panelX+265, panelY+50) < inchToPix(0.75) / 2) {
+  if (!isLogoDragged && !isHandleDragged && dist(mouseX, mouseY, panelX+265, panelY+50) < inchToPix(0.75) / 2) {
     if (mousePressed && currentMode==Mode.REST)
       onSubmit = true;
     isSubmitHover = true;
@@ -206,7 +206,7 @@ void drawPanel() {
 
 // Display panel if user does not mouse press outside of the panel (gives user more focus)
 void displayPanel() {
-  if ((isPanelHover || !mousePressed || isPanelDragged) && (currentMode != Mode.REST || !isLogoDragged)) {
+  if ((isPanelHover || !mousePressed || isPanelDragged) && (currentMode != Mode.REST || !isLogoDragged || !isHandleDragged)) {
       if (currentMode == Mode.REST) { // i.e. control panel's not busy
         panelX = int(logoX/1.5);
       
@@ -220,7 +220,7 @@ void displayPanel() {
                 panelYOffset = logoZ*0.75+10;
             }
         } else {
-            if ((panelY <= 0)) {
+            if ((panelY <= inchToPix(1.1))) {
                 panelYOffset = logoZ*0.75-10;
                 isPanelBottom = true;
             } else {
@@ -260,6 +260,7 @@ void displayPanel() {
        pointerState = -1;
      }
      
-     image(panel, panelX, panelY);
+     if (!disablePanelInteraction)
+       image(panel, panelX, panelY);
   }
 }

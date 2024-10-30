@@ -11,19 +11,6 @@ import java.awt.Point;
 Robot robot;
 int pointerState = -1;
 float offsetX, offsetY;
-//float rotationHandleRadius = 10; // radius of the circle handle
-//float rotationHandleOffset = 5; // distance from the center to the corner handle
-float minLogoSize = 20;  // Minimum allowable size for the square
-float maxHandleRadius = 15;  // Maximum radius for the handle
-float minHandleRadius = 5;   // Minimum radius for the handle
-float rotationHandleRadius;
-boolean isRotating = false;  // Flag to indicate rotating mode
-float initialMouseX, initialMouseY;  // To store initial mouse position when clicking handle
-float initialSize;  // To store the initial size of the square when resizing starts
-float initialRotation;  // To store the initial rotation angle when rotation starts
-boolean isDragging = false;  // Indicates a handle drag is happening
-float initialDist;       // Initial distance from center of square to mouse
-float initialAngleOffset; // Add this to store the angle offset
 
 // =================PANEL VARIABLES=================
 int panelX = 0;
@@ -51,6 +38,10 @@ boolean isDisabledBtnTranslateHorizontal = false;
 boolean isOnTranslate = false;
 boolean isOnRotate = false;
 boolean isOnScale = false;
+boolean isHandleHover = false;
+boolean isHandleDragged = false;
+boolean disableLogoDrag = false;
+boolean disablePanelInteraction = false;
 
 // =================INDICATOR STATUS (0=RED, 1=YELLOW, 2=GREEN)=================
 // [IDEA 20] User square turns lime green when all indicators are correct
@@ -73,10 +64,19 @@ final int screenPPI = 72; //what is the DPI of the screen you are using
 //you can test this by drawing a 72x72 pixel rectangle in code, and then confirming with a ruler it is 1x1 inch. 
 
 //These variables are for my example design. Your input code should modify/replace these!
+float oldLogoX = 500;
+float oldLogoY = 500;
+float oldLogoZ = 50f;
 float logoX = 500;
 float logoY = 500;
 float logoZ = 50f;
 float logoRotation = 0;
+
+// Handle for the user square
+float handleOffset = 1.4;
+float handleX = logoX + (logoZ/handleOffset * -sin(logoRotation - radians(225)));
+float handleY = logoY + (logoZ/handleOffset * cos(logoRotation - radians(225)));
+float handleSize = inchToPix(0.25);
 
 private class Destination
 {
@@ -122,7 +122,7 @@ void setup() {
 
 void draw() {
 
-  background(40); //background is dark grey
+  background(20); //background is dark grey
   fill(200);
   noStroke();
 
@@ -143,7 +143,6 @@ void draw() {
   logoY = constrain(logoY, logoCenter, height - logoCenter);
 
   //===========DRAW DESTINATION SQUARES=================
-  float targetSize = 0;
   for (int i=trialIndex; i<trialCount; i++) // reduces over time
   {
     pushMatrix();
@@ -161,10 +160,9 @@ void draw() {
     
     // add guides to the target
     if (trialIndex==i) {
-      targetSize = d.z;
       drawCrosshair(d.z, color(255, 0, 0, 200), color(255, 0, 0));
       
-      // [IDEA #1] Visual guide lines on TARGET square
+      // [IDEA 1] Visual guide lines on TARGET square
       drawDashedGuideLines(d.z, color(255, 0, 0, 100), 2000, 6, 1);
     }
     
@@ -175,15 +173,35 @@ void draw() {
   pushMatrix();
   translate(logoX, logoY); //translate draw center to the center oft he logo square
   rotate(radians(logoRotation)); //rotate using the logo square as the origin
+  logoColor = (isLogoDragged && !isPanelDragged && !disableLogoDrag) ? color(60, 60, 192, 70) : color(60, 60, 192, 192); // [IDEA 2] Change user square fill (i.e. transparent blue)
   
   noStroke();
+  
   // [IDEA 20] User square turns lime green when all indicators are correct
   fill(checkForSuccess() ? deepLimeGreenSolid : logoColor);
   rect(0, 0, logoZ, logoZ);
   
+  // [IDEA 2] Change user square fill (i.e. stripe-filled)
+  if (indicatorTranslate==2 && !checkForSuccess()) {
+    // Properly center
+    float x = -logoZ/2;
+    float y = -logoZ/2;
+  
+    // Restrict drawing to the blue square's region
+    clip(x, y, logoZ, logoZ);
+  
+    // Draw diagonal stripes inside the square area
+    stroke((isLogoDragged && !isPanelDragged && !disableLogoDrag) ? deepLimeGreenSolid : lightLimeGreenTransparent);
+    for (float i = -logoZ; i < logoZ * 2; i += 20) {
+      line(x + i, y, x + i + logoZ, y + logoZ);
+    }
+  
+    noClip();
+  }
+  
   // [IDEA 5] Marching ants "selection" on user square
-  if (mousePressed && isLogoDragged && currentMode == Mode.REST)   drawMarchingAnts(0, 0, logoZ, color(255, 255, 0, 200), 3, 2);
-  else                                                             drawMarchingAnts(0, 0, logoZ, color(255, 255, 0, 100), 3, 1);
+  if (mousePressed && isLogoDragged && currentMode == Mode.REST && !disableLogoDrag)   drawMarchingAnts(0, 0, logoZ, yellow, 3, 2);
+  else                                                                                 drawMarchingAnts(0, 0, logoZ, yellow, 3, 1);
   
   // add white dot to center of logo square (with a fainter dot for extra visibility)
   noStroke();
@@ -192,26 +210,50 @@ void draw() {
   fill(255, 255, 255, 52);
   ellipse(0, 0, logoZ/8, logoZ/8);
   
-  // [IDEA #1] Visual guide lines on USER square
+  // [IDEA 1] Visual guide lines on USER square
   drawDashedGuideLines(logoZ, color(255, 255, 255, 50), 2000, 6, 1);
-  
-  // Draw the rotation handle in the upper-right corner
-  // Update handle position based on square size
-  rotationHandleRadius = map(logoZ, minLogoSize, 100, minHandleRadius, maxHandleRadius);
-  rotationHandleRadius = constrain(rotationHandleRadius, minHandleRadius, maxHandleRadius);
-
-  float handleX = logoZ / 2;
-  float handleY = -logoZ / 2;
-  fill(255, 100, 100); // red color for the handle
-  ellipse(handleX, handleY, rotationHandleRadius * 2, rotationHandleRadius * 2); // draw rotation handle
-  
   popMatrix();
+
+  // Decide fill and stroke of handle
+  if (isHandleDragged && !isPanelDragged) {
+    fill(color(195, 195, 42, 200));
+    stroke(color(255, 255, 255, 50));
+  } else {
+    fill(color(255, 255, 102, 255));
+    stroke(color(255, 255, 255, 100));
+  }
+  
+  // Draw handle on corner
+  if (!isLogoDragged || isPanelDragged || disableLogoDrag) {
+    strokeWeight(2);
+    ellipse(handleX, handleY, max(handleSize, logoZ*0.1), max(handleSize, logoZ*0.1));
+  }
+  
+  noStroke();
+
+  // [IDEA 7] Corner of user square is draggable (can scale and rotate) via a handle
+  if (disableLogoDrag && !isPanelDragged && (isHandleDragged || logoZ == inchToPix(4f))) {
+    // Resize logo based on cursor distance from handle
+    logoZ = constrain(dist(mouseX, mouseY, logoX, logoY) * handleOffset, .01, inchToPix(4f)); 
+
+    // Set the handle to follow the cursor (up to constrain point)
+    float constrainedDistance = constrain(dist(mouseX, mouseY, logoX, logoY), 0, logoZ / handleOffset);
+    handleX = logoX + constrainedDistance * cos(atan2(mouseY - logoY, mouseX - logoX));
+    handleY = logoY + constrainedDistance * sin(atan2(mouseY - logoY, mouseX - logoX));
+    
+    // Update rotation of logoSquare to update upon dragging handle
+    logoRotation = degrees(atan2(mouseY - logoY, mouseX - logoX)) - 225;
+  } else {
+    handleX = (logoX-oldLogoX) + handleX;
+    handleY = (logoY-oldLogoY) + handleY;
+  }
+  oldLogoX = logoX;
+  oldLogoY = logoY;
+  oldLogoZ = logoZ;
 
   //===========DRAW CONTROLS=================
   fill(255);
-  if(!isRotating){
-    controlLogic(); // replaces the scaffold control logic
-  }
+  controlLogic(); // replaces the scaffold control logic
   text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchToPix(.8f));
   
   // [IDEA 19] Blinking timer
@@ -246,55 +288,17 @@ void mousePressed()
   offsetX = logoX - mouseX;
   offsetY = logoY - mouseY;
   
+  
   if (startTime == 0) //start time on the instant of the first user click
   {
     startTime = millis();
     println("time started!");
   }
-  
-  if (isMouseOverHandle()) {
-    initialMouseX = mouseX;
-    initialMouseY = mouseY;
-    initialSize = logoZ;
-    initialRotation = logoRotation;
-    isDragging = true;
-    
-    // Calculate initial distance and angle from square center to mouse
-    float dx = mouseX - logoX;
-    float dy = mouseY - logoY;
-    initialDist = dist(mouseX, mouseY, logoX, logoY);
-    initialAngle = atan2(dy, dx);
-    
-    // Calculate initial angle offset
-    initialAngleOffset = initialAngle - radians(logoRotation);
-    
-    // Determine if user is resizing or rotating
-    isRotating = true; // Set rotate mode on click
-  } 
-  else if ((dist(mouseX, mouseY, logoX, logoY) < logoZ/2) && !isRotating) {
-    isLogoDragged = true; // drag logo if clicked within square bounds
-  } else {
-    isLogoDragged = false;
-  }
-}
-
-// Check if mouse is over rotation handle
-boolean isMouseOverHandle() {
-  // [IDEA 14] Handle to resizes and rotates the square
-  // Handle position relative to square's center and current rotation
-  float handleGlobalX = logoX + (logoZ / 2) * cos(radians(logoRotation)) - (-logoZ / 2) * sin(radians(logoRotation));
-  float handleGlobalY = logoY + (logoZ / 2) * sin(radians(logoRotation)) + (-logoZ / 2) * cos(radians(logoRotation));
-  return dist(mouseX, mouseY, handleGlobalX, handleGlobalY) < rotationHandleRadius;
 }
 
 void mouseReleased()
 {
-  isRotating = false;
-  isDragging = false;
   checkFlagsMouseReleased();
-  
-  isLogoDragged = false;
-  currentMode = Mode.REST;
   
   // [IDEA 9] Submit button
   if (onSubmit)
@@ -315,36 +319,15 @@ void mouseReleased()
 void mouseDragged() {
   // [IDEA 4] Draggable user square
   checkFlagsMouseDragged();
-  
-  if (isDragging) {
-    float dx = mouseX - logoX;
-    float dy = mouseY - logoY;
-    float currentAngle = atan2(dy, dx);
-    float currentDist = dist(mouseX, mouseY, logoX, logoY);
-    float newSize = initialSize + (currentDist - initialDist);
-
-    // Calculate rotation while preserving the initial angle offset
-    logoRotation = degrees(currentAngle - initialAngleOffset);
-    logoRotation %= 360;
-
-    // Update resizing as usual
-    logoZ = max(minLogoSize, constrain(newSize, minLogoSize, 300));
-    
-  }
-  else if (isLogoDragged) {
-    // Drags the user square
-    logoX = mouseX + offsetX;
-    logoY = mouseY + offsetY;
-  }
-} 
+}
 
 //probably shouldn't modify this, but email me if you want to for some good reason.
 public boolean checkForSuccess()
 {
-  Destination d = destinations.get(trialIndex);  
+  Destination d = destinations.get(trialIndex);	
   boolean closeDist = dist(d.x, d.y, logoX, logoY)<inchToPix(.05f); //has to be within +-0.05"
   boolean closeRotation = calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=5;
-  boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"  
+  boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"	
 
   println("Close Enough Distance: " + closeDist + " (logo X/Y = " + d.x + "/" + d.y + ", destination X/Y = " + logoX + "/" + logoY +")");
   println("Close Enough Rotation: " + closeRotation + " (rot dist="+calculateDifferenceBetweenAngles(d.rotation, logoRotation)+")");

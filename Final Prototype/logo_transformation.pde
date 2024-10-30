@@ -57,8 +57,19 @@ void setLogoTranslate(int xamt, int yamt) {
 
 void setLogoRotate(int amt) {
   logoRotation += amt;
+  
+  // Ensure handle is properly updated
+  float distance = dist(oldLogoX, oldLogoY, handleX, handleY);
+  float angleInRadians = radians(logoRotation);
+  handleX = logoX + distance * cos(angleInRadians - radians(-225));
+  handleY = logoY + distance * sin(angleInRadians - radians(-225));
 }
 
 void setLogoScale(int amt) {
   logoZ = constrain(logoZ-amt, .01, inchToPix(4f)); //leave min and max alone!
+  
+  // Ensure handle is properly updated
+  float scaleFactor = logoZ / oldLogoZ;
+  handleX = logoX + (handleX - logoX) * scaleFactor;
+  handleY = logoY + (handleY - logoY) * scaleFactor;
 }

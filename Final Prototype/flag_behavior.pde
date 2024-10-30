@@ -1,8 +1,18 @@
 void checkFlagsDraw() {
   // set flags on hover of user square
   isPanelHover = (mouseX > panelX && mouseX < panelX + panelWidth && mouseY > panelY && mouseY < panelY + panelHeight);
-  isLogoHover = isMouseInLogo(mouseX, mouseY, logoX, logoY, logoZ, logoZ, logoRotation);
-  isLogoDragged = isLogoHover && mousePressed;
+  isHandleHover = dist(mouseX, mouseY, handleX, handleY) < max(handleSize/2, (logoZ*0.1)/2);
+  
+  // only check logo hover/drag, if handle isn't hovered
+  if (!isHandleHover) {
+    isLogoHover = isMouseInLogo(mouseX, mouseY, logoX, logoY, logoZ, logoZ, logoRotation);
+    isLogoDragged = isLogoHover && mousePressed;
+    isHandleDragged = false;
+  } else {
+    isLogoHover = false;
+    isLogoDragged = false;
+    isHandleDragged = isHandleHover && mousePressed;
+  }
   
   // determine mode flags by cursor region
   if (!isLogoDragged) {
@@ -100,13 +110,20 @@ void checkFlagsMouseReleased() {
   // reset all drag events
   isPanelDragged = false;
   isLogoDragged = false;
+  isHandleDragged = false;
+  disableLogoDrag = false;
+  disablePanelInteraction = false;
 }
 
 void checkFlagsMouseDragged() {
-  if(isPanelHover) isPanelDragged = true; // if user plays with the panel controls, we want to keep the panel alive
+  if (!isLogoDragged) disableLogoDrag = true;
+  
+  if(isPanelHover && !isHandleDragged && !disablePanelInteraction) isPanelDragged = true; // if user plays with the panel controls, we want to keep the panel alive
+  
+  if (isPanelDragged == false) disablePanelInteraction = true;
   
   // logo is in drag mode
-  if(isLogoHover||isLogoDragged) {
+  if((isLogoHover||isLogoDragged) && !disableLogoDrag) {
     if (currentMode==Mode.REST) {
       // Add offset to prevent logo from centering to the pointer
       logoX = mouseX + offsetX;
