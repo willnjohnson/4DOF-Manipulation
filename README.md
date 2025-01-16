@@ -9,9 +9,9 @@ Final Prototype is in directory /Final Prototype.
 Click bakeoff4DOF.pde and run it.
 
 ## Video of Project (discussed by team member Brandon Marth)
-TBA...
+[Watch Explanation of Iterative Design](https://drive.google.com/file/d/1krS454hAWWP4it7VQ9cuSurzHbKrMJjn/view?usp=sharing)
 
-## Iterative Improvements
+## Iterative Design Summary
 #### 🛴 Scaffold
 * No improvements as this code is provided to us
 https://github.com/user-attachments/assets/f59d1b8a-cb9b-4d35-8e77-c96c164eb31d
